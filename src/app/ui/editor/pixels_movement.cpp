@@ -1,5 +1,5 @@
 // Aseprite
-// Copyright (C) 2019-2024  Igara Studio S.A.
+// Copyright (C) 2019-2025  Igara Studio S.A.
 // Copyright (C) 2001-2018  David Capello
 //
 // This program is distributed under the terms of
@@ -31,7 +31,6 @@
 #include "app/util/cel_ops.h"
 #include "app/util/expand_cel_canvas.h"
 #include "app/util/new_image_from_mask.h"
-#include "app/util/range_utils.h"
 #include "base/pi.h"
 #include "doc/algorithm/flip_image.h"
 #include "doc/algorithm/rotate.h"
@@ -131,9 +130,9 @@ PixelsMovement::PixelsMovement(Context* context,
   // TODO: enable TilemapMode exchanges during PixelMovement.
   if (m_site.layer()->isTilemap() && ColorBar::instance())
     ColorBar::instance()->lockTilemapMode();
-  double cornerThick = (m_site.tilemapMode() == TilemapMode::Tiles) ?
-                         CORNER_THICK_FOR_TILEMAP_MODE :
-                         CORNER_THICK_FOR_PIXELS_MODE;
+  const float cornerThick = (m_site.tilemapMode() == TilemapMode::Tiles ?
+                               CORNER_THICK_FOR_TILEMAP_MODE :
+                               CORNER_THICK_FOR_PIXELS_MODE);
   Transformation transform(mask->bounds(), cornerThick);
   set_pivot_from_preferences(transform);
 
@@ -179,7 +178,7 @@ bool PixelsMovement::editMultipleCels() const
 {
   return (m_site.range().enabled() &&
           (Preferences::instance().selection.multicelWhenLayersOrFrames() ||
-           m_site.range().type() == DocRange::kCels));
+           m_site.range().type() == view::Range::kCels));
 }
 
 void PixelsMovement::setDelegate(PixelsMovementDelegate* delegate)
@@ -421,10 +420,12 @@ void PixelsMovement::moveImage(const gfx::PointF& pos, MoveModifier moveModifier
         // Now we calculate the difference from x1,y1 point and we can
         // use it to adjust all coordinates (x1, y1, x2, y2).
         bounds.setOrigin(gridOffset);
+        newTransformation.pivot(abs_initial_pivot - m_initialData.bounds().origin() + gridOffset);
       }
+      else
+        newTransformation.pivot(abs_initial_pivot + gfx::PointF(dx, dy));
 
       newTransformation.bounds(bounds);
-      newTransformation.pivot(abs_initial_pivot + gfx::PointF(dx, dy));
       break;
     }
 
@@ -1417,7 +1418,7 @@ CelList PixelsMovement::getEditableCels()
   CelList cels;
 
   if (editMultipleCels()) {
-    cels = get_unique_cels_to_edit_pixels(m_site.sprite(), m_site.range());
+    cels = m_site.selectedUniqueCelsToEditPixels();
   }
   else {
     // TODO This case is used in paste too, where the cel() can be

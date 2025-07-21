@@ -1,5 +1,5 @@
 // Aseprite
-// Copyright (C) 2019-2024  Igara Studio S.A.
+// Copyright (C) 2019-2025  Igara Studio S.A.
 // Copyright (C) 2001-2018  David Capello
 //
 // This program is distributed under the terms of
@@ -22,6 +22,8 @@
 #include "app/ui/color_button.h"
 #include "app/ui/drop_down_button.h"
 #include "app/ui/expr_entry.h"
+#include "app/ui/filename_field.h"
+#include "app/ui/font_entry.h"
 #include "app/ui/icon_button.h"
 #include "app/ui/mini_help_button.h"
 #include "app/ui/search_entry.h"
@@ -253,6 +255,13 @@ Widget* WidgetLoader::convertXmlElementToWidget(const XMLElement* elem,
 
     if (elem_name == "expr" && decimals)
       ((ExprEntry*)widget)->setDecimals(strtol(decimals, nullptr, 10));
+  }
+  if (elem_name == "filename") {
+    const bool buttononly = bool_attr(elem, "buttononly", false);
+    const app::FilenameField::Type type = (buttononly ? app::FilenameField::Type::ButtonOnly :
+                                                        app::FilenameField::Type::EntryAndButton);
+
+    widget = new app::FilenameField(type, "");
   }
   else if (elem_name == "grid") {
     const char* columns = elem->Attribute("columns");
@@ -499,7 +508,7 @@ Widget* WidgetLoader::convertXmlElementToWidget(const XMLElement* elem,
           throw base::Exception("File %s not found", file);
 
         try {
-          os::SurfaceRef sur = os::instance()->loadRgbaSurface(rf.filename().c_str());
+          os::SurfaceRef sur = os::System::instance()->loadRgbaSurface(rf.filename().c_str());
           if (sur) {
             sur->setImmutable();
             widget = new ImageView(sur, 0);
@@ -520,6 +529,10 @@ Widget* WidgetLoader::convertXmlElementToWidget(const XMLElement* elem,
   else if (elem_name == "search") {
     if (!widget)
       widget = new SearchEntry;
+  }
+  else if (elem_name == "font") {
+    if (!widget)
+      widget = new FontEntry(false);
   }
 
   // Was the widget created?
